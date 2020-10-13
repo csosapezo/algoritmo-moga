@@ -176,7 +176,7 @@ public class NOVA {
         this.initialise();
 
         do {
-            int[] parents = new int[2];
+            int[] parents;
             ArrayList<Poblacion[]> news = new ArrayList<>();
             this.evaluate();
             parents = this.select();
