@@ -11,7 +11,22 @@ public class Fitness {
         int[] capacidad = new int[num_turnos_agencias];
 
         for (int i = 0; i < p.length; i++) {
+            turn_agency_position = p.getRecojo_turno().getCapacidad()*p.getRecojo_turno().getId_punto_reocojo()+p.getRecojo_turno().getTurno()
+            capacidad[turn_agency_position] += 1
         }
+
+        double mean = 0;
+        for (int i = 0; i < capacidad.length; i++) {
+            mean += capacidad[i];
+        }
+        mean /= capacidad.length;
+
+        double accumulator = 0;
+        for (int i = 0; i < capacidad.length; i++) {
+            accumulator += Math.pow((capacidad[i]-mean), 2);
+        }
+
+        this.aglomeracion = 1.0 * accumulator / capacidad.length;
     }
 
     private void calc_distance(Poblacion[] p){
