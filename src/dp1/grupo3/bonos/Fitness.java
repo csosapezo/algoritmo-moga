@@ -5,25 +5,26 @@ public class Fitness {
     private double aglomeracion;
     private double distancia;
 
-    private void calc_aglomeracion(Poblacion[] p, int num_turnos_agencias){
+    private void calc_aglomeracion(Poblacion[] p, int num_agencias, int num_turnos){
         this.aglomeracion = 0;
-
+        int num_turnos_agencias = num_agencias * num_turnos;
         int[] capacidad = new int[num_turnos_agencias];
 
-        for (int i = 0; i < p.length; i++) {
-            turn_agency_position = p.getRecojo_turno().getCapacidad()*p.getRecojo_turno().getId_punto_reocojo()+p.getRecojo_turno().getTurno()
-            capacidad[turn_agency_position] += 1
+        for (Poblacion poblacion : p) {
+            int turn_agency_position = poblacion.getRecojo_turno().getId_punto_reocojo() *  num_turnos
+                    + poblacion.getRecojo_turno().getTurno();
+            capacidad[turn_agency_position] += 1;
         }
 
         double mean = 0;
-        for (int i = 0; i < capacidad.length; i++) {
-            mean += capacidad[i];
+        for (int j : capacidad) {
+            mean += j;
         }
         mean /= capacidad.length;
 
         double accumulator = 0;
-        for (int i = 0; i < capacidad.length; i++) {
-            accumulator += Math.pow((capacidad[i]-mean), 2);
+        for (int j : capacidad) {
+            accumulator += Math.pow((j - mean), 2);
         }
 
         this.aglomeracion = 1.0 * accumulator / capacidad.length;
@@ -43,24 +44,16 @@ public class Fitness {
         return aglomeracion;
     }
 
-    public void setAglomeracion(double aglomeracion) {
-        this.aglomeracion = aglomeracion;
-    }
-
     public double getDistancia() {
         return distancia;
     }
 
-    public void setDistancia(double distancia) {
-        this.distancia = distancia;
-    }
-
     public double weighted_fitness(double w1, double w2) {
-        return w1 * (1/ (1 + this.aglomeracion)) + w2 * this.distancia;
+        return w1 * (1/ (1 + this.aglomeracion)) + w2 * (1 / (1 + this.distancia));
     }
 
-    public void calc_fitness(Poblacion[] p, int num_turnos_agencias) {
+    public void calc_fitness(Poblacion[] p, int num_agencias, int num_turnos) {
         this.calc_distance(p);
-        this.calc_aglomeracion(p, num_turnos_agencias);
+        this.calc_aglomeracion(p, num_agencias, num_turnos);
     }
 }

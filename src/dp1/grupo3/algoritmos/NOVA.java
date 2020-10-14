@@ -22,8 +22,34 @@ public class NOVA {
 
 
     /* Private methods */
-    private void pareto() {
+    private double[] pareto() {
 
+        double[] fitness_values = new double[2];
+
+        /* Hallar miínima aglomeración*/
+        int min_aglomeracion = 0;
+        int min_distancia = 0;
+
+        for ( int i = 1; i < fitness.length; i++ ) {
+            if ( fitness[i].getAglomeracion() <= fitness[min_aglomeracion].getAglomeracion() )
+                min_aglomeracion = i;
+        }
+
+        fitness_values[0] = fitness[min_aglomeracion].getAglomeracion();
+
+        pareto.add(poblacion.get(min_aglomeracion));
+
+        /* Hallar no dominados */
+        for (int i = 0; i < fitness.length; i++) {
+            if (fitness[i].getDistancia() >= fitness[min_aglomeracion].getDistancia())
+                pareto.add(poblacion.get(i));
+            if ( fitness[i].getDistancia() <= fitness[min_aglomeracion].getDistancia())
+                min_distancia = i;
+        }
+
+        fitness_values[1] = fitness[min_distancia].getDistancia();
+
+        return fitness_values;
     }
 
 
@@ -78,11 +104,11 @@ public class NOVA {
         }
     }
 
-    private void evaluate() {
+    private double[] evaluate() {
         for (int i = 0; i < num_population; i++) {
-            fitness[i].calc_fitness(poblacion.get(i), this.num_agencies * this.turns_per_agency);
+            fitness[i].calc_fitness(poblacion.get(i), this.num_agencies, this.turns_per_agency);
         }
-        this.pareto();
+        return this.pareto();
     }
 
     private int[] select() {
@@ -147,11 +173,8 @@ public class NOVA {
         poblacion.add(news.get(1));
     }
 
-    private boolean termination_test(double fitness) {
-        if (this.fitness_test != -1)
-            return this.fitness_test < fitness;
-        else
-            return false;
+    private boolean termination_test(double[] values) {
+        return (values[0] == fitness_test) && (values[1] == fitness_test);
     }
 
 
@@ -172,13 +195,13 @@ public class NOVA {
     public void execute() {
 
         int epochs = 0;
-        int fitness = 0;
+        double[] values;
         this.initialise();
 
         do {
             int[] parents;
             ArrayList<Poblacion[]> news = new ArrayList<>();
-            this.evaluate();
+            values = this.evaluate();
             parents = this.select();
             this.crossover(parents, news);
             this.mutate(news);
@@ -186,6 +209,9 @@ public class NOVA {
 
             epochs++;
 
-        } while ((epochs < this.num_epochs) && !this.termination_test(fitness));
+            System.out.printf("Época %d/%d: Aglomeración = %6.3f -- Distancia = %6.3f \n",
+                    epochs, num_epochs, values[0], values[1]);
+
+        } while ((epochs < this.num_epochs) && !this.termination_test(values));
     }
 }
