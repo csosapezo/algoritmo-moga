@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Random;
 
 public class NOVA {
+    boolean verbose;
     /* Attributes */
     int num_epochs, num_elements, num_agencies, turns_per_agency, num_ubigeo, num_population;
     double mutate_factor, fitness_test, crossover_factor;
@@ -16,6 +17,7 @@ public class NOVA {
     PuntoRecojo[] agencias;
     ArrayList<Poblacion[]> poblacion;
     ArrayList<Poblacion[]> pareto;
+    ArrayList<Integer> not_pareto_index;
     Fitness[] fitness;
 
     Random r = new Random();
@@ -43,6 +45,8 @@ public class NOVA {
         for (int i = 0; i < fitness.length; i++) {
             if (fitness[i].getDistancia() >= fitness[min_aglomeracion].getDistancia())
                 pareto.add(poblacion.get(i));
+            else
+                not_pareto_index.add(i);
             if ( fitness[i].getDistancia() <= fitness[min_aglomeracion].getDistancia())
                 min_distancia = i;
         }
@@ -75,11 +79,13 @@ public class NOVA {
         poblacion = new ArrayList<>(num_population);
         fitness = new Fitness[this.num_population];
         pareto = new ArrayList<>();
+        not_pareto_index = new ArrayList<>();
 
         /* Initialise delivery spots */
         for (int i = 0; i < this.num_agencies; i++) {
             for (int j = 0; j < this.turns_per_agency; j++) {
                 int index = i * this.turns_per_agency + j;
+                this.agencias[index]  = new PuntoRecojo();
                 this.agencias[index].setId_punto_reocojo(i);
                 this.agencias[index].setUbigeo(this.r.nextInt(this.num_ubigeo));
                 this.agencias[index].setCapacidad(this.turns_per_agency);
@@ -89,6 +95,7 @@ public class NOVA {
 
         /* Initialise population */
         for (int i = 0; i < this.num_elements; i++) {
+            this.beneficiarios[i] = new Beneficiario();
             this.beneficiarios[i].setId_beneficiario(i);
             this.beneficiarios[i].setUbigeo(this.r.nextInt(this.num_ubigeo));
         }
@@ -97,6 +104,7 @@ public class NOVA {
         for (int i = 0; i < this.num_population; i++) {
             Poblacion[] p = new Poblacion[this.num_elements];
             for (int j = 0; j < this.num_elements; j++) {
+                p[j] = new Poblacion();
                 p[j].setBeneficiario(this.beneficiarios[j]);
                 p[j].setRecojo_turno(this.agencias[this.r.nextInt(this.agencias.length)]);
             }
@@ -106,6 +114,7 @@ public class NOVA {
 
     private double[] evaluate() {
         for (int i = 0; i < num_population; i++) {
+            fitness[i] = new Fitness();
             fitness[i].calc_fitness(poblacion.get(i), this.num_agencies, this.turns_per_agency);
         }
         return this.pareto();
@@ -167,10 +176,13 @@ public class NOVA {
     }
 
     private void update(ArrayList<Poblacion[]> news) {
-        poblacion.remove(r.nextInt(num_population));
-        poblacion.add(news.get(0));
-        poblacion.remove(r.nextInt(num_population));
-        poblacion.add(news.get(1));
+        while(not_pareto_index.size() != 0 && news.size() != 0){
+            int removed_index = r.nextInt(not_pareto_index.size());
+            poblacion.remove(not_pareto_index.get(removed_index).intValue());
+            poblacion.add(news.get(0));
+            not_pareto_index.remove(removed_index);
+            news.remove(0);
+        }
     }
 
     private boolean termination_test(double[] values) {
@@ -180,7 +192,7 @@ public class NOVA {
 
     /* Public methods */
     public NOVA(int num_epochs, double mutate_factor, int num_elements, int num_agencies, double fitness_test,
-                int turns_per_agency, int num_ubigeo, int num_population, double crossover_factor) {
+                int turns_per_agency, int num_ubigeo, int num_population, double crossover_factor, boolean verbose) {
         this.num_epochs = num_epochs;
         this.mutate_factor = mutate_factor;
         this.num_elements = num_elements;
@@ -190,6 +202,7 @@ public class NOVA {
         this.num_ubigeo = num_ubigeo;
         this.num_population = num_population;
         this.crossover_factor = crossover_factor;
+        this.verbose = verbose;
     }
 
     public void execute() {
@@ -202,15 +215,19 @@ public class NOVA {
             int[] parents;
             ArrayList<Poblacion[]> news = new ArrayList<>();
             values = this.evaluate();
-            parents = this.select();
-            this.crossover(parents, news);
-            this.mutate(news);
+            for (int i = 0; i < 4; i++) {
+                parents = this.select();
+                this.crossover(parents, news);
+                this.mutate(news);
+            }
             this.update(news);
 
             epochs++;
 
-            System.out.printf("Época %d/%d: Aglomeración = %6.3f -- Distancia = %6.3f \n",
-                    epochs, num_epochs, values[0], values[1]);
+            if (verbose || epochs == this.num_epochs) {
+                System.out.printf("Época %d/%d: Aglomeración = %6.3f -- Distancia = %6.3f \n",
+                        epochs, num_epochs, values[0], values[1]);
+            }
 
         } while ((epochs < this.num_epochs) && !this.termination_test(values));
     }
